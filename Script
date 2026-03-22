@@ -1,0 +1,24 @@
+const nodemailer = require("nodemailer");
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: "smarttalent00@gmail.com",
+    pass: "YOUR_APP_PASSWORD"
+  }
+});
+
+async function sendVerification(email, link) {
+  await transporter.sendMail({
+    from: '"NexaBot" <smarttalent00@gmail.com>',
+    to: email,
+    subject: "Verify your NexaBot account",
+    html: `
+      <h2>Welcome to NexaBot 🤖</h2>
+      <p>Click below to verify your account:</p>
+      <a href="${link}">Verify Account</a>
+    `
+  });
+}
+
+module.exports = sendVerification;
