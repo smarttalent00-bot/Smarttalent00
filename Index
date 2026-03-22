@@ -1,0 +1,153 @@
+const {
+  default: makeWASocket,
+  useMultiFileAuthState
+} = require("@whiskeysockets/baileys");
+
+const config = require("./config");
+
+// 👑 OWNER CHECK
+const isOwner = (sender) => config.owners.includes(sender);
+
+// ⚡ COMMAND PREFIX
+const prefix = "!";
+
+// 🚀 START BOT
+async function startBot() {
+  const { state, saveCreds } = await useMultiFileAuthState("sessions");
+
+  const sock = makeWASocket({
+    auth: state
+  });
+
+  sock.ev.on("creds.update", saveCreds);
+
+  // 💬 MESSAGE HANDLER
+  sock.ev.on("messages.upsert", async ({ messages }) => {
+    const msg = messages[0];
+    if (!msg.message) return;
+
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || from;
+
+    const text =
+      msg.message.conversation ||
+      msg.message.extendedTextMessage?.text ||
+      "";
+
+    if (!text.startsWith(prefix)) return;
+
+    const args = text.slice(1).trim().split(" ");
+    const command = args.shift().toLowerCase();
+
+    const owner = isOwner(sender);
+
+    console.log(`📩 Command: ${command} from ${sender}`);
+
+    // ================= COMMANDS =================
+
+    // ⚡ PING
+    if (command === "ping") {
+      return sock.sendMessage(from, {
+        text: `⚡ ${config.botName} is active!`
+      });
+    }
+
+    // 📖 HELP
+    if (command === "help") {
+      return sock.sendMessage(from, {
+        text: `🤖 *${config.botName} Commands*
+
+!ping - Check bot
+!help - Show commands
+!owner - Check owner
+!tagall - Tag everyone
+!kick - Remove user
+!promote - Make admin
+!demote - Remove admin
+!shutdown - Owner only
+`
+      });
+    }
+
+    // 👑 OWNER CHECK
+    if (command === "owner") {
+      return sock.sendMessage(from, {
+        text: owner ? "👑 You are the owner" : "🙂 Not owner"
+      });
+    }
+
+    // 👥 TAG ALL
+    if (command === "tagall") {
+      const groupMetadata = await sock.groupMetadata(from);
+      const participants = groupMetadata.participants;
+
+      let text = "👥 Tagging everyone:\n\n";
+
+      const mentions = participants.map(p => p.id);
+
+      participants.forEach(p => {
+        text += `@${p.id.split("@")[0]}\n`;
+      });
+
+      return sock.sendMessage(from, {
+        text,
+        mentions
+      });
+    }
+
+    // 🚫 KICK USER
+    if (command === "kick") {
+      if (!owner) return;
+
+      const mentioned =
+        msg.message.extendedTextMessage?.contextInfo?.mentionedJid;
+
+      if (!mentioned) {
+        return sock.sendMessage(from, {
+          text: "❌ Mention user to kick"
+        });
+      }
+
+      await sock.groupParticipantsUpdate(from, mentioned, "remove");
+    }
+
+    // 👑 PROMOTE
+    if (command === "promote") {
+      if (!owner) return;
+
+      const mentioned =
+        msg.message.extendedTextMessage?.contextInfo?.mentionedJid;
+
+      await sock.groupParticipantsUpdate(from, mentioned, "promote");
+    }
+
+    // ⬇️ DEMOTE
+    if (command === "demote") {
+      if (!owner) return;
+
+      const mentioned =
+        msg.message.extendedTextMessage?.contextInfo?.mentionedJid;
+
+      await sock.groupParticipantsUpdate(from, mentioned, "demote");
+    }
+
+    // 🛑 SHUTDOWN
+    if (command === "shutdown") {
+      if (!owner) {
+        return sock.sendMessage(from, {
+          text: "❌ Owner only"
+        });
+      }
+
+      await sock.sendMessage(from, {
+        text: "🛑 Shutting down NexaBot..."
+      });
+
+      process.exit();
+    }
+
+    // ==========================================
+  });
+}
+
+startBot();
