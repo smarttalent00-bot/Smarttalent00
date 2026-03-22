@@ -1,0 +1,27 @@
+if (command === "menu") {
+  return sock.sendMessage(from, {
+    text: `🤖 *NexaBot Full Menu*
+
+⚡ Basic
+!ping | !alive | !help
+
+👑 Owner
+!shutdown | !restart | !block
+
+👥 Group
+!tagall | !kick | !promote | !demote
+
+🛡️ Security
+!antispam | !antilink | !antibad
+
+🤖 AI
+!ai | !translate | !summarize
+
+🎉 Fun
+!joke | !quote | !meme
+
+📊 System
+!status | !uptime
+`
+  });
+}
