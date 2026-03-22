@@ -1,0 +1,14 @@
+const { DisconnectReason } = require("@whiskeysockets/baileys");
+
+sock.ev.on("connection.update", ({ connection, lastDisconnect }) => {
+  const reason = lastDisconnect?.error?.output?.statusCode;
+
+  if (reason === DisconnectReason.loggedOut) {
+    console.log("🚨 Possible hijack detected!");
+
+    // Alert owner
+    sock.sendMessage("2348147991524@s.whatsapp.net", {
+      text: "🚨 NexaBot was logged out! Possible hijack attempt!"
+    });
+  }
+});
